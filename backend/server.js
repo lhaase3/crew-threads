@@ -3,11 +3,14 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 const Stripe = require('stripe');
 const dns = require('dns');
 const { decrementInventory, logOrderToSheet } = require('./sheets');
 const gmailUser = process.env.GMAIL_USER;
 const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
+const sendgridApiKey = process.env.SENDGRID_API_KEY;
+const sendgridFromEmail = process.env.SENDGRID_FROM_EMAIL;
 const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
 const smtpPort = Number(process.env.SMTP_PORT || 587);
 const smtpSecure = process.env.SMTP_SECURE === 'true';
@@ -19,6 +22,14 @@ const processedStripeEvents = new Set();
 const smtpLookup = (hostname, options, callback) => {
   dns.lookup(hostname, { ...options, family: 4, all: false }, callback);
 };
+
+if (smtpForceIpv4 && typeof dns.setDefaultResultOrder === 'function') {
+  dns.setDefaultResultOrder('ipv4first');
+}
+
+if (sendgridApiKey) {
+  sgMail.setApiKey(sendgridApiKey);
+}
 
 const transporter = gmailUser && gmailAppPassword
   ? nodemailer.createTransport({
@@ -33,6 +44,7 @@ const transporter = gmailUser && gmailAppPassword
       connectionTimeout: 15000,
       greetingTimeout: 10000,
       socketTimeout: 20000,
+      ...(smtpForceIpv4 ? { family: 4 } : {}),
       ...(smtpForceIpv4 ? { lookup: smtpLookup } : {}),
     })
   : null;
@@ -42,28 +54,63 @@ if (transporter) {
     if (error) {
       console.error('Email transporter verification failed:', error.message);
     } else {
-      console.log(`Email transporter ready (${smtpHost}:${smtpPort}, secure=${smtpSecure})`);
+      console.log(`Email transporter ready (${smtpHost}:${smtpPort}, secure=${smtpSecure}, ipv4=${smtpForceIpv4})`);
     }
   });
 }
 
-async function sendOrderEmail(order) {
-  if (!transporter) {
-    console.warn('Skipping order email because GMAIL_USER and GMAIL_APP_PASSWORD are not configured.');
-    return;
+async function deliverEmail({ to, subject, text }) {
+  if (sendgridApiKey && sendgridFromEmail) {
+    try {
+      await sgMail.send({
+        to,
+        from: sendgridFromEmail,
+        subject,
+        text,
+      });
+      return { provider: 'sendgrid', ok: true };
+    } catch (error) {
+      console.error('Error sending email via SendGrid:', error.response?.body || error.message || error);
+    }
   }
 
-  const mailOptions = {
-    from: gmailUser,
-    to: ['haatchedinterns@gmail.com', 'loganhaase3@gmail.com', 'haases@purdue.edu'],
-    subject: 'New Crew Threads Order',
-    text: `A new order has been placed for Crew Threads.\n\nDetails:\nFirst Name: ${order.firstName}\nLast Name: ${order.lastName}\nEmail: ${order.email}\nPhone: ${order.phone}\nAddress: ${order.address}\nState: ${order.state}\nZip Code: ${order.zipcode}\nSize: ${order.size}\nDate: ${order.date}`
-  };
+  if (!transporter) {
+    console.warn('Skipping email because neither SendGrid nor Gmail SMTP is fully configured.');
+    return { provider: 'none', ok: false };
+  }
+
   try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log('Order email sent:', info.response);
+    const info = await transporter.sendMail({
+      from: gmailUser,
+      to,
+      subject,
+      text,
+    });
+    return { provider: 'smtp', ok: true, response: info.response };
   } catch (error) {
-    console.error('Error sending order email:', error);
+    console.error('Error sending email via SMTP:', error);
+    return { provider: 'smtp', ok: false };
+  }
+}
+
+async function sendOrderEmail(order) {
+  const toRecipients = ['haatchedinterns@gmail.com', 'loganhaase3@gmail.com', 'haases@purdue.edu'];
+  const subject = 'New Crew Threads Order';
+  const text = `A new order has been placed for Crew Threads.\n\nDetails:\nFirst Name: ${order.firstName}\nLast Name: ${order.lastName}\nEmail: ${order.email}\nPhone: ${order.phone}\nAddress: ${order.address}\nState: ${order.state}\nZip Code: ${order.zipcode}\nSize: ${order.size}\nDate: ${order.date}`;
+
+  const result = await deliverEmail({ to: toRecipients, subject, text });
+  if (result.ok) {
+    console.log(`Order email sent via ${result.provider}.`);
+  }
+}
+
+async function sendCustomerConfirmationEmail(order) {
+  const subject = 'Thank you for your Crew Threads purchase';
+  const text = `Hi ${order.firstName},\n\nThank you for your purchase from Crew Threads. Your payment was successful and we are now processing your order.\n\nOrder summary:\n${order.size}\n\nShipping details:\n${order.address}\n${order.state} ${order.zipcode}\n\nIf you have any questions, reply to this email and we will help you out.\n\n- Crew Threads`;
+
+  const result = await deliverEmail({ to: order.email, subject, text });
+  if (result.ok) {
+    console.log(`Customer confirmation sent via ${result.provider}.`);
   }
 }
 
@@ -105,6 +152,15 @@ async function processPaidOrder(orderData) {
     zipcode,
     size: buildOrderSummary(items),
     date: new Date().toISOString(),
+  });
+
+  await sendCustomerConfirmationEmail({
+    firstName,
+    email,
+    address,
+    state,
+    zipcode,
+    size: buildOrderSummary(items),
   });
 }
 
