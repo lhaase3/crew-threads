@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import "./OrderModal.css";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
 const OrderModal = ({ isOpen, onClose }) => {
   const [form, setForm] = useState({
     firstName: "",
@@ -42,35 +44,33 @@ const OrderModal = ({ isOpen, onClose }) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      // Combine address fields for backend compatibility
-      const submitData = {
+      const payload = {
         ...form,
-        address: `${form.address}, ${form.state} ${form.zipcode}`.trim(),
-        items: form.items.map(item => ({
+        items: form.items.map((item) => ({
           size: item.size,
-          quantity: Number(item.quantity)
-        }))
+          quantity: Number(item.quantity),
+        })),
       };
-      const res = await fetch('http://localhost:5000/api/order', {
+
+      const res = await fetch(`${API_BASE_URL}/api/create-checkout-session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(submitData),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (res.ok) {
-        alert('Order submitted!');
-        onClose();
-      } else {
-        alert(data.error || 'Order failed.');
+
+      if (!res.ok || !data.url) {
+        alert(data.error || 'Unable to start checkout.');
+        setIsSubmitting(false);
+        return;
       }
+
+      window.location.href = data.url;
     } catch (err) {
       alert('Network error. Please try again.');
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
-
-  // Stripe payment link (replace with your own Stripe Payment Link)
-  const stripeLink = "https://buy.stripe.com/test_7sI3eQ0wQ0wQ0wQ0wQ";
 
   return (
     <div className="order-modal-overlay">
@@ -194,13 +194,9 @@ const OrderModal = ({ isOpen, onClose }) => {
             <button type="button" onClick={addItem} style={{ marginBottom: '0.7rem', background: '#eee', color: '#222', border: '1px solid #bbb', borderRadius: '5px', padding: '0.3rem 0.7rem', cursor: 'pointer', fontWeight: 600 }}>+ Add Shirt</button>
           </div>
           <button type="submit" className="order-modal-submit" disabled={isSubmitting}>
-            {isSubmitting ? "Submitting..." : "Submit Order"}
+            {isSubmitting ? "Redirecting..." : "Continue to Secure Checkout"}
           </button>
         </form>
-        <div className="order-modal-or">or</div>
-        <a href={stripeLink} target="_blank" rel="noopener noreferrer" className="order-modal-stripe-btn">
-          Pay with Card (Stripe)
-        </a>
       </div>
     </div>
   );

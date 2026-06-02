@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 backend/.env*
+!backend/.env.example
 backend/service-account.json
 
 # Editor directories and files

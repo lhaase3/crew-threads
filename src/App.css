@@ -6,10 +6,10 @@ body {
 }
 
 .crew-threads-landing {
-  max-width: 1600px;
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
   background: #fff;
-  border-radius: 12px;
+  border-radius: 0;
   box-shadow: 0 4px 32px #0001;
   padding: 0 0 2.5rem 0;
   overflow: hidden;
