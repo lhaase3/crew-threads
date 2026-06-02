@@ -4,15 +4,21 @@ const express = require('express');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
 const Stripe = require('stripe');
+const dns = require('dns');
 const { decrementInventory, logOrderToSheet } = require('./sheets');
 const gmailUser = process.env.GMAIL_USER;
 const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
 const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
 const smtpPort = Number(process.env.SMTP_PORT || 587);
 const smtpSecure = process.env.SMTP_SECURE === 'true';
+const smtpForceIpv4 = process.env.SMTP_FORCE_IPV4 !== 'false';
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 const processedStripeEvents = new Set();
+
+const smtpLookup = (hostname, options, callback) => {
+  dns.lookup(hostname, { ...options, family: 4, all: false }, callback);
+};
 
 const transporter = gmailUser && gmailAppPassword
   ? nodemailer.createTransport({
@@ -27,6 +33,7 @@ const transporter = gmailUser && gmailAppPassword
       connectionTimeout: 15000,
       greetingTimeout: 10000,
       socketTimeout: 20000,
+      ...(smtpForceIpv4 ? { lookup: smtpLookup } : {}),
     })
   : null;
 
