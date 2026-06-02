@@ -52,7 +52,6 @@ async function decrementInventory(size) {
           spreadsheetId: INVENTORY_SHEET_ID,
           range: `E${i + 2}`,
           valueInputOption: 'RAW',
-          majorDimension: 'COLUMNS',
           requestBody: { values: [[rows[i][4]]] },
         });
         // Also clear the cell to the right (column F) as a safeguard
@@ -60,7 +59,6 @@ async function decrementInventory(size) {
           spreadsheetId: INVENTORY_SHEET_ID,
           range: `F${i + 2}`,
           valueInputOption: 'RAW',
-          majorDimension: 'COLUMNS',
           requestBody: { values: [['']] },
         });
       } else {
