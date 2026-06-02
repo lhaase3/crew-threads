@@ -1,5 +1,5 @@
 import './App.css';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import OrderModal from './OrderModal';
 
 function App({ setOrderModalOpen }) {
@@ -103,10 +103,35 @@ function App({ setOrderModalOpen }) {
 
 function AppWrapper() {
   const [orderModalOpen, setOrderModalOpen] = useState(false);
+  const [thankYouModalOpen, setThankYouModalOpen] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('checkout') === 'success') {
+      setThankYouModalOpen(true);
+      params.delete('checkout');
+      const nextQuery = params.toString();
+      const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash}`;
+      window.history.replaceState({}, '', nextUrl);
+    }
+  }, []);
+
   return (
     <>
       <App setOrderModalOpen={setOrderModalOpen} />
       <OrderModal isOpen={orderModalOpen} onClose={() => setOrderModalOpen(false)} />
+      {thankYouModalOpen && (
+        <div className="ct-success-overlay" role="dialog" aria-modal="true" aria-labelledby="ct-success-title">
+          <div className="ct-success-modal">
+            <button className="ct-success-close" onClick={() => setThankYouModalOpen(false)} aria-label="Close">&times;</button>
+            <h3 id="ct-success-title">Thank You for Your Purchase!</h3>
+            <p>Your payment was successful, and your order is now being processed.</p>
+            <button className="ct-btn ct-btn-primary" onClick={() => setThankYouModalOpen(false)}>
+              Continue Browsing
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }

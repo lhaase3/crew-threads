@@ -7,21 +7,40 @@ const Stripe = require('stripe');
 const { decrementInventory, logOrderToSheet } = require('./sheets');
 const gmailUser = process.env.GMAIL_USER;
 const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
+const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+const smtpPort = Number(process.env.SMTP_PORT || 587);
+const smtpSecure = process.env.SMTP_SECURE === 'true';
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 const processedStripeEvents = new Set();
 
 const transporter = gmailUser && gmailAppPassword
   ? nodemailer.createTransport({
-      service: 'gmail',
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpSecure,
+      requireTLS: !smtpSecure,
       auth: {
         user: gmailUser,
         pass: gmailAppPassword,
-      }
+      },
+      connectionTimeout: 15000,
+      greetingTimeout: 10000,
+      socketTimeout: 20000,
     })
   : null;
 
-function sendOrderEmail(order) {
+if (transporter) {
+  transporter.verify((error) => {
+    if (error) {
+      console.error('Email transporter verification failed:', error.message);
+    } else {
+      console.log(`Email transporter ready (${smtpHost}:${smtpPort}, secure=${smtpSecure})`);
+    }
+  });
+}
+
+async function sendOrderEmail(order) {
   if (!transporter) {
     console.warn('Skipping order email because GMAIL_USER and GMAIL_APP_PASSWORD are not configured.');
     return;
@@ -33,13 +52,12 @@ function sendOrderEmail(order) {
     subject: 'New Crew Threads Order',
     text: `A new order has been placed for Crew Threads.\n\nDetails:\nFirst Name: ${order.firstName}\nLast Name: ${order.lastName}\nEmail: ${order.email}\nPhone: ${order.phone}\nAddress: ${order.address}\nState: ${order.state}\nZip Code: ${order.zipcode}\nSize: ${order.size}\nDate: ${order.date}`
   };
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.error('Error sending order email:', error);
-    } else {
-      console.log('Order email sent:', info.response);
-    }
-  });
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Order email sent:', info.response);
+  } catch (error) {
+    console.error('Error sending order email:', error);
+  }
 }
 
 function buildOrderSummary(items) {
@@ -70,7 +88,7 @@ async function processPaidOrder(orderData) {
     });
   }
 
-  sendOrderEmail({
+  await sendOrderEmail({
     firstName,
     lastName,
     email,

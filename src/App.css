@@ -228,6 +228,52 @@ body {
   margin-top: 2rem;
 }
 
+.ct-success-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 34, 57, 0.35);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  z-index: 1200;
+}
+
+.ct-success-modal {
+  width: 100%;
+  max-width: 440px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 10px 32px rgba(10, 34, 57, 0.24);
+  padding: 1.7rem 1.5rem 1.4rem;
+  position: relative;
+  text-align: center;
+}
+
+.ct-success-modal h3 {
+  margin: 0 0 0.65rem;
+  color: #0a2239;
+  font-size: 1.6rem;
+}
+
+.ct-success-modal p {
+  margin: 0 0 1.2rem;
+  color: #334155;
+}
+
+.ct-success-close {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.7rem;
+  border: none;
+  background: none;
+  color: #64748b;
+  font-size: 1.9rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
 @media (max-width: 700px) {
   .ct-header {
     flex-direction: column;
@@ -241,5 +287,13 @@ body {
     border-radius: 0;
     box-shadow: none;
     padding: 0;
+  }
+
+  .ct-success-modal {
+    padding: 1.6rem 1.1rem 1.2rem;
+  }
+
+  .ct-success-modal h3 {
+    font-size: 1.35rem;
   }
 }
