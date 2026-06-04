@@ -205,6 +205,8 @@ function PilotShirtPage({ setOrderModalOpen, onNavigate, cart, addToCart }) {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isImageZoomOpen, setIsImageZoomOpen] = useState(false);
   const [isSizeChartOpen, setIsSizeChartOpen] = useState(false);
+  const [isPhoneGallery, setIsPhoneGallery] = useState(window.innerWidth <= 700);
+  const [thumbnailPage, setThumbnailPage] = useState(0);
 
   const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
   
@@ -212,6 +214,7 @@ function PilotShirtPage({ setOrderModalOpen, onNavigate, cart, addToCart }) {
     { src: '/images/prop-front.png', alt: 'Front view' },
     { src: '/images/prop-full-body.png', alt: 'Full body view' },
     { src: '/images/prop-back.png', alt: 'Back view' },
+    { src: '/images/prop-pocket.png', alt: 'Pocket detail' },
     { src: '/images/prop-armpit.png', alt: 'Armpit ventilation' },
     { src: '/images/shirt-mock.png', alt: 'Shirt mockup' },
   ];
@@ -224,6 +227,13 @@ function PilotShirtPage({ setOrderModalOpen, onNavigate, cart, addToCart }) {
     { size: 'XL', neck: '19.0', chest: '48.0', shirtLength: '32.0', sleeveLength: '21.0' },
     { size: 'XXL', neck: '20.5', chest: '52.0', shirtLength: '33.0', sleeveLength: '22.0' },
   ];
+
+  const thumbnailsPerPage = 4;
+  const totalThumbnailPages = Math.ceil(productImages.length / thumbnailsPerPage);
+  const visibleThumbnailStart = isPhoneGallery ? thumbnailPage * thumbnailsPerPage : 0;
+  const visibleThumbnails = isPhoneGallery
+    ? productImages.slice(visibleThumbnailStart, visibleThumbnailStart + thumbnailsPerPage)
+    : productImages;
 
   const handleAddToCart = () => {
     if (!selectedSize) {
@@ -279,6 +289,10 @@ function PilotShirtPage({ setOrderModalOpen, onNavigate, cart, addToCart }) {
     setIsSizeChartOpen(false);
   };
 
+  const showNextThumbnailPage = () => {
+    setThumbnailPage((currentPage) => (currentPage + 1) % totalThumbnailPages);
+  };
+
   useEffect(() => {
     if (!isImageZoomOpen) {
       return undefined;
@@ -301,6 +315,25 @@ function PilotShirtPage({ setOrderModalOpen, onNavigate, cart, addToCart }) {
     }
   }, []);
 
+  useEffect(() => {
+    const handleResize = () => {
+      setIsPhoneGallery(window.innerWidth <= 700);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (!isPhoneGallery) {
+      setThumbnailPage(0);
+      return;
+    }
+
+    const nextPage = Math.floor(selectedImageIndex / thumbnailsPerPage);
+    setThumbnailPage(nextPage);
+  }, [isPhoneGallery, selectedImageIndex]);
+
   return (
     <div className="crew-threads-landing ct-product-page">
       <header className="ct-header">
@@ -322,17 +355,32 @@ function PilotShirtPage({ setOrderModalOpen, onNavigate, cart, addToCart }) {
 
       <main className="ct-product-page-main">
         <div className="ct-product-gallery-section">
-          <div className="ct-product-thumbnails">
-            {productImages.map((image, index) => (
+          <div className="ct-product-thumbnails-row">
+            <div className="ct-product-thumbnails">
+              {visibleThumbnails.map((image, index) => {
+                const resolvedIndex = visibleThumbnailStart + index;
+                return (
+                <button
+                  key={image.src}
+                  className={`ct-product-thumbnail${resolvedIndex === selectedImageIndex ? ' is-active' : ''}`}
+                  onClick={() => setSelectedImageIndex(resolvedIndex)}
+                  aria-label={`View ${image.alt}`}
+                >
+                  <img src={image.src} alt={image.alt} className={getThumbnailImageClass(image.src)} />
+                </button>
+                );
+              })}
+            </div>
+            {isPhoneGallery && totalThumbnailPages > 1 && (
               <button
-                key={index}
-                className={`ct-product-thumbnail${index === selectedImageIndex ? ' is-active' : ''}`}
-                onClick={() => setSelectedImageIndex(index)}
-                aria-label={`View ${image.alt}`}
+                type="button"
+                className="ct-thumb-scroll-btn"
+                onClick={showNextThumbnailPage}
+                aria-label="Show more thumbnails"
               >
-                <img src={image.src} alt={image.alt} className={getThumbnailImageClass(image.src)} />
+                &#8594;
               </button>
-            ))}
+            )}
           </div>
           <div className="ct-product-page-image-wrap">
             <img
