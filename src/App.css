@@ -505,6 +505,13 @@ body {
   line-height: 1.65;
 }
 
+.ct-product-price {
+  margin-top: 0.55rem;
+  color: #0a2239;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
 .ct-product-page-kicker {
   margin: 0 0 0.75rem;
   color: #1e3a5c;

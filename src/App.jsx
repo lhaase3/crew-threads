@@ -199,6 +199,7 @@ function App({ setOrderModalOpen, onNavigate, cart }) {
 }
 
 function PilotShirtPage({ setOrderModalOpen, onNavigate, cart, addToCart }) {
+  const shirtUnitPrice = 34;
   const [selectedSize, setSelectedSize] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -357,6 +358,7 @@ function PilotShirtPage({ setOrderModalOpen, onNavigate, cart, addToCart }) {
           <p>
             A modern flight shirt built for long days in the cockpit, with the professional look you want and the comfort details you actually notice.
           </p>
+          <div className="ct-product-price">${shirtUnitPrice.toFixed(2)} each</div>
 
           <div className="ct-product-selectors">
             <div className="ct-size-selector">

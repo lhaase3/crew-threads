@@ -138,6 +138,7 @@ async function processPaidOrder(orderData) {
       state,
       zipcode,
       size: item.size,
+      quantity,
       date: new Date().toISOString(),
     });
   }

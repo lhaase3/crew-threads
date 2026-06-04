@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import "./OrderModal.css";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const SHIRT_UNIT_PRICE = 34;
+const SHIPPING_PRICE = 5;
 
 const OrderModal = ({ isOpen, onClose, initialCart = [] }) => {
   const [form, setForm] = useState({
@@ -15,6 +17,14 @@ const OrderModal = ({ isOpen, onClose, initialCart = [] }) => {
     items: initialCart.length > 0 ? initialCart : [{ size: "", quantity: 1 }],
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const totalQuantity = form.items.reduce((sum, item) => {
+    const parsedQuantity = Number(item.quantity);
+    return sum + (Number.isFinite(parsedQuantity) && parsedQuantity > 0 ? parsedQuantity : 0);
+  }, 0);
+  const subtotal = totalQuantity * SHIRT_UNIT_PRICE;
+  const shipping = totalQuantity > 0 ? SHIPPING_PRICE : 0;
+  const total = subtotal + shipping;
 
   // Update items when initialCart changes
   React.useEffect(() => {
@@ -197,6 +207,20 @@ const OrderModal = ({ isOpen, onClose, initialCart = [] }) => {
               </div>
             ))}
             <button type="button" onClick={addItem} style={{ marginBottom: '0.7rem', background: '#eee', color: '#222', border: '1px solid #bbb', borderRadius: '5px', padding: '0.3rem 0.7rem', cursor: 'pointer', fontWeight: 600 }}>+ Add Shirt</button>
+          </div>
+          <div className="order-modal-summary" aria-live="polite">
+            <div className="order-modal-summary-row">
+              <span>Shirts ({totalQuantity})</span>
+              <span>${subtotal.toFixed(2)}</span>
+            </div>
+            <div className="order-modal-summary-row">
+              <span>Shipping</span>
+              <span>${shipping.toFixed(2)}</span>
+            </div>
+            <div className="order-modal-summary-row is-total">
+              <span>Total</span>
+              <span>${total.toFixed(2)}</span>
+            </div>
           </div>
           <button type="submit" className="order-modal-submit" disabled={isSubmitting}>
             {isSubmitting ? "Redirecting..." : "Continue to Secure Checkout"}

@@ -84,6 +84,36 @@
   background: #b3c6e6;
   cursor: not-allowed;
 }
+
+.order-modal-summary {
+  margin-top: 0.35rem;
+  padding: 0.75rem 0.7rem;
+  border-radius: 8px;
+  background: #f4f7fb;
+  border: 1px solid #d3dde9;
+}
+
+.order-modal-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.96rem;
+  color: #183248;
+  margin-bottom: 0.3rem;
+}
+
+.order-modal-summary-row:last-child {
+  margin-bottom: 0;
+}
+
+.order-modal-summary-row.is-total {
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid #c7d2e2;
+  font-size: 1.03rem;
+  font-weight: 700;
+  color: #0a2239;
+}
 .order-modal-or {
   text-align: center;
   margin: 1rem 0 0.5rem 0;

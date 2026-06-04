@@ -10,7 +10,7 @@ const INVENTORY_RANGE = 'A2:F7'; // Includes Sold column (F)
 
 // Replace with your actual orders sheet ID and range
 const ORDERS_SHEET_ID = '197u8-yTYRMa9WrGPafujhTDy0vyokMN9tZMUTjFB5Lg';
-const ORDERS_RANGE = 'A1:I1'; // Header row for appending orders (9 columns)
+const ORDERS_RANGE = 'A1:J1'; // Header row for appending orders (10 columns)
 
 function getSheetsClient() {
   const auth = new google.auth.GoogleAuth({
@@ -82,6 +82,7 @@ async function logOrderToSheet(order) {
     order.state,
     order.zipcode,
     order.size,
+    order.quantity,
     order.date
   ]];
   await sheets.spreadsheets.values.append({
