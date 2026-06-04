@@ -3,7 +3,7 @@ import "./OrderModal.css";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
-const OrderModal = ({ isOpen, onClose }) => {
+const OrderModal = ({ isOpen, onClose, initialCart = [] }) => {
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -12,11 +12,16 @@ const OrderModal = ({ isOpen, onClose }) => {
     address: "",
     state: "",
     zipcode: "",
-    items: [
-      { size: "", quantity: 1 }
-    ],
+    items: initialCart.length > 0 ? initialCart : [{ size: "", quantity: 1 }],
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Update items when initialCart changes
+  React.useEffect(() => {
+    if (initialCart.length > 0) {
+      setForm(prev => ({ ...prev, items: initialCart }));
+    }
+  }, [initialCart]);
 
   if (!isOpen) return null;
 

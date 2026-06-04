@@ -238,6 +238,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
   }
 
   const unitAmount = Number(process.env.STRIPE_UNIT_AMOUNT || 3400);
+  const shippingAmount = 500; // $5 in cents
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
   try {
@@ -251,6 +252,18 @@ app.post('/api/create-checkout-session', async (req, res) => {
       },
       quantity: Number(item.quantity),
     }));
+
+    // Add shipping as a line item
+    lineItems.push({
+      price_data: {
+        currency: 'usd',
+        product_data: {
+          name: 'Shipping',
+        },
+        unit_amount: shippingAmount,
+      },
+      quantity: 1,
+    });
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
