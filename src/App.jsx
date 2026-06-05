@@ -23,7 +23,7 @@ function App({ setOrderModalOpen, onNavigate, cart }) {
   useEffect(() => {
     const intervalId = window.setInterval(() => {
       setActiveHeroIndex((currentIndex) => (currentIndex + 1) % heroImages.length);
-    }, 15000);
+    }, 5000);
 
     return () => window.clearInterval(intervalId);
   }, [heroImages.length]);
@@ -199,7 +199,7 @@ function App({ setOrderModalOpen, onNavigate, cart }) {
 }
 
 function PilotShirtPage({ setOrderModalOpen, onNavigate, cart, addToCart }) {
-  const shirtUnitPrice = 34;
+  const shirtUnitPrice = 34.50;
   const [selectedSize, setSelectedSize] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
