@@ -593,6 +593,21 @@ body {
   flex-direction: column;
 }
 
+.ct-cart-notice {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 1300;
+  background: #0a2239;
+  color: #ffffff;
+  padding: 0.7rem 0.9rem;
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(10, 34, 57, 0.2);
+  font-weight: 600;
+  font-size: 0.92rem;
+  max-width: min(90vw, 320px);
+}
+
 /* Features Section */
 .ct-features {
   padding: 2.5rem 1rem 2rem 1rem;
@@ -1044,6 +1059,13 @@ body {
 
   .ct-success-modal h3 {
     font-size: 1.35rem;
+  }
+
+  .ct-cart-notice {
+    right: 0.65rem;
+    bottom: 0.65rem;
+    font-size: 0.88rem;
+    padding: 0.62rem 0.78rem;
   }
 }
 

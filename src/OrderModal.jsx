@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import "./OrderModal.css";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
-const SHIRT_UNIT_PRICE = 34;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+const SHIRT_UNIT_PRICE = 34.50;
 const SHIPPING_PRICE = 5;
 
 const OrderModal = ({ isOpen, onClose, initialCart = [] }) => {

@@ -120,16 +120,52 @@ function buildOrderSummary(items) {
     .join(', ');
 }
 
+function wrapStepError(step, error, context = {}) {
+  const detail = error instanceof Error ? error.message : String(error);
+  const wrappedError = new Error(`[${step}] ${detail}`);
+  wrappedError.context = context;
+  wrappedError.cause = error;
+  return wrappedError;
+}
+
 async function processPaidOrder(orderData) {
   const { firstName, lastName, email, phone, address, state, zipcode, items } = orderData;
+  console.log('Processing paid order', {
+    email,
+    itemCount: items.length,
+    summary: buildOrderSummary(items),
+  });
 
   for (const item of items) {
     const quantity = Number(item.quantity);
-    for (let i = 0; i < quantity; i += 1) {
-      await decrementInventory(item.size);
+    try {
+      for (let i = 0; i < quantity; i += 1) {
+        await decrementInventory(item.size);
+      }
+    } catch (error) {
+      throw wrapStepError('inventory-decrement', error, { size: item.size, quantity });
     }
 
-    await logOrderToSheet({
+    try {
+      await logOrderToSheet({
+        firstName,
+        lastName,
+        email,
+        phone,
+        address,
+        state,
+        zipcode,
+        size: item.size,
+        quantity,
+        date: new Date().toISOString(),
+      });
+    } catch (error) {
+      throw wrapStepError('google-sheets-log-order', error, { size: item.size, quantity });
+    }
+  }
+
+  try {
+    await sendOrderEmail({
       firstName,
       lastName,
       email,
@@ -137,32 +173,27 @@ async function processPaidOrder(orderData) {
       address,
       state,
       zipcode,
-      size: item.size,
-      quantity,
+      size: buildOrderSummary(items),
       date: new Date().toISOString(),
     });
+  } catch (error) {
+    throw wrapStepError('send-order-email', error, { email });
   }
 
-  await sendOrderEmail({
-    firstName,
-    lastName,
-    email,
-    phone,
-    address,
-    state,
-    zipcode,
-    size: buildOrderSummary(items),
-    date: new Date().toISOString(),
-  });
+  try {
+    await sendCustomerConfirmationEmail({
+      firstName,
+      email,
+      address,
+      state,
+      zipcode,
+      size: buildOrderSummary(items),
+    });
+  } catch (error) {
+    throw wrapStepError('send-customer-confirmation-email', error, { email });
+  }
 
-  await sendCustomerConfirmationEmail({
-    firstName,
-    email,
-    address,
-    state,
-    zipcode,
-    size: buildOrderSummary(items),
-  });
+  console.log('Finished processing paid order', { email, summary: buildOrderSummary(items) });
 }
 
 const app = express();
@@ -171,6 +202,19 @@ const PORT = process.env.PORT || 5000;
 
 
 app.use(cors());
+
+app.get('/api/health', (req, res) => {
+  return res.json({
+    ok: true,
+    service: 'crewthreads-backend',
+    stripeConfigured: Boolean(stripe),
+    stripeWebhookConfigured: Boolean(stripeWebhookSecret),
+    sendgridConfigured: Boolean(sendgridApiKey && sendgridFromEmail),
+    smtpConfigured: Boolean(transporter),
+    googleCredentialsConfigured: Boolean(process.env.GOOGLE_APPLICATION_CREDENTIALS),
+    timestamp: new Date().toISOString(),
+  });
+});
 
 app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   if (!stripe || !stripeWebhookSecret) {
@@ -182,6 +226,7 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
   try {
     const signature = req.headers['stripe-signature'];
     event = stripe.webhooks.constructEvent(req.body, signature, stripeWebhookSecret);
+    console.log('Stripe webhook received', { eventId: event.id, eventType: event.type });
   } catch (error) {
     console.error('Stripe webhook signature verification failed:', error.message);
     return res.status(400).send(`Webhook Error: ${error.message}`);
@@ -189,10 +234,12 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
 
   try {
     if (processedStripeEvents.has(event.id)) {
+      console.log('Skipping duplicate Stripe webhook event', { eventId: event.id, eventType: event.type });
       return res.json({ received: true });
     }
 
     if (event.type === 'checkout.session.completed') {
+      console.log('Handling checkout.session.completed', { eventId: event.id });
       const session = event.data.object;
       const orderData = session.metadata ? {
         firstName: session.metadata.firstName,
@@ -213,10 +260,16 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
     }
 
     processedStripeEvents.add(event.id);
+    console.log('Stripe webhook processed successfully', { eventId: event.id, eventType: event.type });
 
     return res.json({ received: true });
   } catch (error) {
-    console.error('Error processing Stripe webhook:', error);
+    console.error('Error processing Stripe webhook:', {
+      message: error.message,
+      context: error.context,
+      eventId: event?.id,
+      eventType: event?.type,
+    });
     return res.status(500).send('Failed to process webhook.');
   }
 });

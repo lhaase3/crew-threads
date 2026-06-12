@@ -207,6 +207,7 @@ function PilotShirtPage({ setOrderModalOpen, onNavigate, cart, addToCart }) {
   const [isSizeChartOpen, setIsSizeChartOpen] = useState(false);
   const [isPhoneGallery, setIsPhoneGallery] = useState(window.innerWidth <= 700);
   const [thumbnailPage, setThumbnailPage] = useState(0);
+  const [cartNotice, setCartNotice] = useState('');
 
   const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
   
@@ -240,10 +241,12 @@ function PilotShirtPage({ setOrderModalOpen, onNavigate, cart, addToCart }) {
       alert('Please select a size');
       return;
     }
+    const addedSize = selectedSize;
+    const addedQuantity = quantity;
     addToCart(selectedSize, quantity);
     setSelectedSize('');
     setQuantity(1);
-    alert(`Added ${quantity} ${selectedSize} shirt(s) to cart!`);
+    setCartNotice(`Added ${addedQuantity} ${addedSize} shirt(s) to cart.`);
   };
 
   const handleQuantityChange = (e) => {
@@ -333,6 +336,18 @@ function PilotShirtPage({ setOrderModalOpen, onNavigate, cart, addToCart }) {
     const nextPage = Math.floor(selectedImageIndex / thumbnailsPerPage);
     setThumbnailPage(nextPage);
   }, [isPhoneGallery, selectedImageIndex]);
+
+  useEffect(() => {
+    if (!cartNotice) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setCartNotice('');
+    }, 2500);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [cartNotice]);
 
   return (
     <div className="crew-threads-landing ct-product-page">
@@ -450,6 +465,12 @@ function PilotShirtPage({ setOrderModalOpen, onNavigate, cart, addToCart }) {
           </div>
         </div>
       </main>
+
+      {cartNotice && (
+        <div className="ct-cart-notice" role="status" aria-live="polite">
+          {cartNotice}
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="ct-footer">
