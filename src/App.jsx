@@ -4,21 +4,22 @@ import OrderModal from './OrderModal';
 
 function App({ setOrderModalOpen, onNavigate, cart }) {
   const [activeHeroIndex, setActiveHeroIndex] = useState(0);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 600);
+  const heroCompactBreakpoint = 980;
+  const [useCompactHeroImages, setUseCompactHeroImages] = useState(window.innerWidth < heroCompactBreakpoint);
 
   const heroImages = [
-    '/images/pilot-header-image.png',
-    isMobile ? '/images/pilot-header-image-small-2.png' : '/images/pilot-header-image-2.png',
+    useCompactHeroImages ? '/images/pilot-header-image-small.png' : '/images/pilot-header-image.png',
+    useCompactHeroImages ? '/images/pilot-header-image-small-2.png' : '/images/pilot-header-image-2.png',
   ];
 
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 600);
+      setUseCompactHeroImages(window.innerWidth < heroCompactBreakpoint);
     };
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [heroCompactBreakpoint]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -27,6 +28,34 @@ function App({ setOrderModalOpen, onNavigate, cart }) {
 
     return () => window.clearInterval(intervalId);
   }, [heroImages.length]);
+
+  useEffect(() => {
+    const revealElements = document.querySelectorAll('.ct-scroll-reveal');
+    if (!revealElements.length) {
+      return undefined;
+    }
+
+    const revealObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) {
+            return;
+          }
+
+          entry.target.classList.add('is-visible');
+          revealObserver.unobserve(entry.target);
+        });
+      },
+      {
+        threshold: 0.2,
+        rootMargin: '0px 0px -40px 0px',
+      },
+    );
+
+    revealElements.forEach((element) => revealObserver.observe(element));
+
+    return () => revealObserver.disconnect();
+  }, []);
 
   const showPreviousHeroImage = () => {
     setActiveHeroIndex((currentIndex) => (currentIndex - 1 + heroImages.length) % heroImages.length);
@@ -115,7 +144,7 @@ function App({ setOrderModalOpen, onNavigate, cart }) {
       </div>
 
       {/* Hero Section */}
-      <section className="ct-hero">
+      <section className="ct-hero ct-scroll-reveal">
         <p className="ct-hero-sub">Pilot Shirts Built for Comfort in and out of the Cockpit</p>
         {/* <div className="ct-hero-cta">
           <button className="ct-btn ct-btn-primary" onClick={() => setOrderModalOpen(true)}>Order Now</button>
@@ -133,7 +162,7 @@ function App({ setOrderModalOpen, onNavigate, cart }) {
       </section>
 
       {/* Features Section */}
-      <section className="ct-features" id="features">
+      <section className="ct-features ct-scroll-reveal" id="features">
         <h2>Shirt Features</h2>
         <div className="ct-feature-grid">
           <div className="ct-feature-card"><strong>Shoulder Epaulettes</strong><br />Designed for pilot rank placement. Easily add or remove rank stripes for a professional look.</div>
@@ -148,7 +177,7 @@ function App({ setOrderModalOpen, onNavigate, cart }) {
       </section>
 
       {/* About Section */}
-      <section className="ct-about" id="about">
+      <section className="ct-about ct-scroll-reveal" id="about">
         <h2>About Crew Threads</h2>
         <p>Crew Threads was created to rethink the standard pilot shirt. Instead of a stiff, uncomfortable uniform top, these shirts were designed with performance materials, breathable construction, and hidden utility features that make sense for pilots.</p>
       </section>
@@ -227,6 +256,17 @@ function PilotShirtPage({ setOrderModalOpen, onNavigate, cart, addToCart }) {
     { size: 'L', neck: '17.5', chest: '44.0', shirtLength: '31.0', sleeveLength: '20.0' },
     { size: 'XL', neck: '19.0', chest: '48.0', shirtLength: '32.0', sleeveLength: '21.0' },
     { size: 'XXL', neck: '20.5', chest: '52.0', shirtLength: '33.0', sleeveLength: '22.0' },
+  ];
+
+  const productFeatureHighlights = [
+    // 'Made from recycled materials including 49% rayon from bamboo, 47% polyester, and 4% spandex.',
+    // 'Pen/Glasses holder, breathable underarm, magnetic pockets, sweat-resistant pocket.',
+    'Premium Quality',
+    '49% Rayon from Bamboo, 47% Polyester, 4% Spandex',
+    'Sweat-resistant collar',
+    'Breathable underarm mesh',
+    'Magnetic pocket',
+    'Hidden glasses loop',
   ];
 
   const thumbnailsPerPage = 4;
@@ -458,6 +498,14 @@ function PilotShirtPage({ setOrderModalOpen, onNavigate, cart, addToCart }) {
               <button className="ct-btn ct-btn-secondary" onClick={() => setOrderModalOpen(true)}>
                 View Cart ({cart.reduce((sum, item) => sum + item.quantity, 0)})
               </button>
+            </div>
+            <div className="ct-product-mini-features" aria-label="Pilot shirt features">
+              <h3>Features</h3>
+              <ul>
+                {productFeatureHighlights.map((feature) => (
+                  <li key={feature}>{feature}</li>
+                ))}
+              </ul>
             </div>
             <div className="ct-size-chart-trigger-row">
               <button className="ct-size-chart-trigger" onClick={openSizeChart}>View Size Chart</button>
